@@ -1,0 +1,6 @@
+@TrainSyncAPI_HostAddress = http://localhost:5159
+
+GET {{TrainSyncAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
