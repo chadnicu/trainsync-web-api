@@ -26,5 +26,7 @@ public class Workout
 
     [Column("comment")] public string? Comment { get; set; }
 
-    [Column("user_id")] public required string UserId { get; set; }
+    [Required] [Column("user_id")] public required string UserId { get; set; }
+
+    public List<WorkoutExercise> Exercises { get; set; } = new();
 }

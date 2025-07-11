@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TrainSyncAPI.Data;
 
@@ -11,9 +12,11 @@ using TrainSyncAPI.Data;
 namespace TrainSyncAPI.Migrations
 {
     [DbContext(typeof(TrainSyncContext))]
-    partial class TrainSyncContextModelSnapshot : ModelSnapshot
+    [Migration("20250709074101_IntermediaryTables")]
+    partial class IntermediaryTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -39,12 +42,8 @@ namespace TrainSyncAPI.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("nvarchar(max)")
-                        .HasDefaultValue("RepetitionsInReserve")
+                        .HasDefaultValue("RepsInReserve")
                         .HasColumnName("intensity_unit");
-
-                    b.Property<bool>("IsPublic")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_public");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -87,10 +86,6 @@ namespace TrainSyncAPI.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("description");
-
-                    b.Property<bool>("IsPublic")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_public");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -163,7 +158,7 @@ namespace TrainSyncAPI.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("nvarchar(max)")
-                        .HasDefaultValue("RepetitionsInReserve")
+                        .HasDefaultValue("RepsInReserve")
                         .HasColumnName("intensity_unit");
 
                     b.Property<double?>("Reps")
@@ -305,7 +300,7 @@ namespace TrainSyncAPI.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("nvarchar(max)")
-                        .HasDefaultValue("RepetitionsInReserve")
+                        .HasDefaultValue("RepsInReserve")
                         .HasColumnName("intensity_unit");
 
                     b.Property<double?>("Reps")

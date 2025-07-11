@@ -10,7 +10,7 @@ public static class UserExtensions
         foreach (var claim in user.Claims)
             Console.WriteLine($" - {claim.Type}: {claim.Value}");
         return user.FindFirst("sub")?.Value
-            ?? user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
-            ?? throw new UnauthorizedAccessException("Missing Clerk user ID.");
+               ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+               ?? throw new UnauthorizedAccessException("Missing Clerk user ID.");
     }
 }

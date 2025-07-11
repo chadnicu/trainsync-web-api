@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TrainSyncAPI.Data;
 
@@ -11,9 +12,11 @@ using TrainSyncAPI.Data;
 namespace TrainSyncAPI.Migrations
 {
     [DbContext(typeof(TrainSyncContext))]
-    partial class TrainSyncContextModelSnapshot : ModelSnapshot
+    [Migration("20250709081332_IdkWhatPendingChanges")]
+    partial class IdkWhatPendingChanges
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -41,10 +44,6 @@ namespace TrainSyncAPI.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasDefaultValue("RepetitionsInReserve")
                         .HasColumnName("intensity_unit");
-
-                    b.Property<bool>("IsPublic")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_public");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -87,10 +86,6 @@ namespace TrainSyncAPI.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("description");
-
-                    b.Property<bool>("IsPublic")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_public");
 
                     b.Property<string>("Title")
                         .IsRequired()

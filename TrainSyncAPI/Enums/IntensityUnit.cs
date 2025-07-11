@@ -2,6 +2,6 @@ namespace TrainSyncAPI.Enums;
 
 public enum IntensityUnit
 {
-    RepsInReserve,
+    RepetitionsInReserve,
     RateOfPerceivedExertion
 }

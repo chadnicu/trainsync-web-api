@@ -15,5 +15,9 @@ public class Template
 
     [Column("description")] public string? Description { get; set; }
 
-    [Column("user_id")] public required string UserId { get; set; }
+    [Column("is_public")] public bool IsPublic { get; set; } = false;
+
+    [Required] [Column("user_id")] public required string UserId { get; set; }
+
+    public List<TemplateExercise> Exercises { get; set; } = new();
 }
