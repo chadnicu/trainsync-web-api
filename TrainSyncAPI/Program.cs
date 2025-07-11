@@ -14,8 +14,8 @@ using TrainSyncAPI.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration
-    .AddJsonFile("appsettings.json", true, true)
+builder
+    .Configuration.AddJsonFile("appsettings.json", true, true)
     .AddUserSecrets<Program>()
     .AddEnvironmentVariables();
 
@@ -23,9 +23,13 @@ builder.Services.AddDbContext<TrainSyncContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
 
-builder.Services.AddControllers()
+builder
+    .Services.AddControllers()
     .AddJsonOptions(options =>
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, false)));
+        options.JsonSerializerOptions.Converters.Add(
+            new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, false)
+        )
+    );
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -44,7 +48,7 @@ builder.Services.AddSwaggerGen(options =>
             In = ParameterLocation.Header,
             Type = SecuritySchemeType.Http,
             Scheme = "bearer",
-            BearerFormat = "JWT"
+            BearerFormat = "JWT",
         }
     );
 
@@ -58,11 +62,11 @@ builder.Services.AddSwaggerGen(options =>
                     Reference = new OpenApiReference
                     {
                         Type = ReferenceType.SecurityScheme,
-                        Id = "Bearer"
-                    }
+                        Id = "Bearer",
+                    },
                 },
                 Array.Empty<string>()
-            }
+            },
         }
     );
 });
@@ -76,11 +80,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy(
         "AllowFrontend",
         policy =>
-            policy
-                .WithOrigins(allowedOrigins)
-                .AllowAnyHeader()
-                .AllowAnyMethod()
-                .AllowCredentials()
+            policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod().AllowCredentials()
     );
 });
 
@@ -113,7 +113,7 @@ builder
                 var jwksJson = client.GetStringAsync(jwksUrl).GetAwaiter().GetResult();
                 var keys = new JsonWebKeySet(jwksJson);
                 return keys.Keys;
-            }
+            },
         };
 
         if (builder.Environment.IsDevelopment())
@@ -121,16 +121,20 @@ builder
             {
                 OnAuthenticationFailed = context =>
                 {
-                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                    var logger = context.HttpContext.RequestServices.GetRequiredService<
+                        ILogger<Program>
+                    >();
                     logger.LogError(context.Exception, "JWT authentication failed");
                     return Task.CompletedTask;
                 },
                 OnTokenValidated = context =>
                 {
-                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                    var logger = context.HttpContext.RequestServices.GetRequiredService<
+                        ILogger<Program>
+                    >();
                     logger.LogInformation("JWT token validated successfully.");
                     return Task.CompletedTask;
-                }
+                },
             };
     });
 
@@ -142,11 +146,12 @@ builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+// if (app.Environment.IsDevelopment())
+// {
+app.UseSwagger();
+app.UseSwaggerUI();
+
+// }
 
 // Use CORS before authentication/authorization
 app.UseCors("AllowFrontend");
@@ -175,11 +180,15 @@ if (app.Environment.IsDevelopment() && !string.IsNullOrEmpty(clerkBackendToken))
             if (!string.IsNullOrEmpty(sessionId))
             {
                 using var httpClient = new HttpClient();
-                httpClient.DefaultRequestHeaders.Authorization =
-                    new AuthenticationHeaderValue("Bearer", clerkBackendToken);
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+                    "Bearer",
+                    clerkBackendToken
+                );
                 var content = new StringContent("{}", Encoding.UTF8, "application/json");
-                var response =
-                    await httpClient.PostAsync($"https://api.clerk.com/v1/sessions/{sessionId}/tokens", content);
+                var response = await httpClient.PostAsync(
+                    $"https://api.clerk.com/v1/sessions/{sessionId}/tokens",
+                    content
+                );
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -188,14 +197,20 @@ if (app.Environment.IsDevelopment() && !string.IsNullOrEmpty(clerkBackendToken))
                     if (jwtObj.RootElement.TryGetProperty("jwt", out var jwtProp))
                     {
                         var logger = app.Services.GetRequiredService<ILogger<Program>>();
-                        logger.LogInformation("Clerk test JWT (use as Bearer token): {Jwt}", jwtProp.GetString());
+                        logger.LogInformation(
+                            "Clerk test JWT (use as Bearer token): {Jwt}",
+                            jwtProp.GetString()
+                        );
                     }
                 }
                 else
                 {
                     var logger = app.Services.GetRequiredService<ILogger<Program>>();
-                    logger.LogWarning("Failed to get JWT via HttpClient: {StatusCode} {Content}",
-                        response.StatusCode, await response.Content.ReadAsStringAsync());
+                    logger.LogWarning(
+                        "Failed to get JWT via HttpClient: {StatusCode} {Content}",
+                        response.StatusCode,
+                        await response.Content.ReadAsStringAsync()
+                    );
                 }
             }
             else
@@ -207,7 +222,9 @@ if (app.Environment.IsDevelopment() && !string.IsNullOrEmpty(clerkBackendToken))
         else
         {
             var logger = app.Services.GetRequiredService<ILogger<Program>>();
-            logger.LogWarning("No Clerk users found. Please create a user in your Clerk dashboard.");
+            logger.LogWarning(
+                "No Clerk users found. Please create a user in your Clerk dashboard."
+            );
         }
     }
     catch (Exception ex)
@@ -220,7 +237,14 @@ else
 {
     var logger = app.Services.GetRequiredService<ILogger<Program>>();
     logger.LogInformation(
-        "CLERK_API_KEY environment variable is not set or not in development. Skipping test token creation.");
+        "CLERK_API_KEY environment variable is not set or not in development. Skipping test token creation."
+    );
+}
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<TrainSyncContext>();
+    db.Database.Migrate();
 }
 
 app.Run();
