@@ -9,7 +9,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using TrainSyncAPI.Data;
-using TrainSyncAPI.Mapping;
 using TrainSyncAPI.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -48,7 +47,7 @@ builder.Services.AddSwaggerGen(options =>
             In = ParameterLocation.Header,
             Type = SecuritySchemeType.Http,
             Scheme = "bearer",
-            BearerFormat = "JWT",
+            BearerFormat = "JWT"
         }
     );
 
@@ -62,11 +61,11 @@ builder.Services.AddSwaggerGen(options =>
                     Reference = new OpenApiReference
                     {
                         Type = ReferenceType.SecurityScheme,
-                        Id = "Bearer",
-                    },
+                        Id = "Bearer"
+                    }
                 },
                 Array.Empty<string>()
-            },
+            }
         }
     );
 });
@@ -113,7 +112,7 @@ builder
                 var jwksJson = client.GetStringAsync(jwksUrl).GetAwaiter().GetResult();
                 var keys = new JsonWebKeySet(jwksJson);
                 return keys.Keys;
-            },
+            }
         };
 
         if (builder.Environment.IsDevelopment())
@@ -134,14 +133,11 @@ builder
                     >();
                     logger.LogInformation("JWT token validated successfully.");
                     return Task.CompletedTask;
-                },
+                }
             };
     });
 
 builder.Services.AddAuthorization();
-
-// AutoMapper
-builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 
 var app = builder.Build();
 

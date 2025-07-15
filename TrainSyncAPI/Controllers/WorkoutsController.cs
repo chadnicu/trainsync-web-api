@@ -1,4 +1,3 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,52 +14,53 @@ namespace TrainSyncAPI.Controllers;
 public class WorkoutsController : ControllerBase
 {
     private readonly TrainSyncContext _context;
-    private readonly IMapper _mapper;
 
-    public WorkoutsController(TrainSyncContext context, IMapper mapper)
+    public WorkoutsController(TrainSyncContext context)
     {
         _context = context;
-        _mapper = mapper;
     }
 
     // GET: api/Workouts
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<WorkoutWithExercisesDto>>> GetWorkouts()
+    public async Task<ActionResult<IEnumerable<WorkoutWithExercisesViewModel>>> GetWorkouts()
     {
         var userId = User.GetClerkUserId();
 
-        return await _context.Workouts
-            .Where(w => w.UserId == userId)
-            .Select(w => new WorkoutWithExercisesDto
-            {
-                Id = w.Id,
-                Title = w.Title,
-                Description = w.Description,
-                ProgrammedDate = w.ProgrammedDate,
-                StartTime = w.StartTime,
-                EndTime = w.EndTime,
-                Comment = w.Comment,
-                Exercises = w.Exercises.Select(e => new WorkoutExerciseWithSetCountDto
-                    {
-                        Id = e.Id,
-                        Order = e.Order,
-                        Title = e.Exercise.Title,
-                        SetsCount = e.Sets.Count
-                    }
-                ).ToList()
-            })
-            .ToListAsync();
+        var workoutWithExerciseListAndSetCount =
+            await _context.Workouts
+                .Where(w => w.UserId == userId)
+                .Select(w => new WorkoutWithExercisesViewModel
+                {
+                    Id = w.Id,
+                    Title = w.Title,
+                    Description = w.Description,
+                    ProgrammedDate = w.ProgrammedDate,
+                    StartTime = w.StartTime,
+                    EndTime = w.EndTime,
+                    Comment = w.Comment,
+                    Exercises = w.Exercises.Select(e => new WorkoutExerciseWithSetCountDto
+                        {
+                            Id = e.Id,
+                            Order = e.Order,
+                            Title = e.Exercise.Title,
+                            SetsCount = e.Sets.Count
+                        }
+                    ).ToList()
+                })
+                .ToListAsync();
+
+        return workoutWithExerciseListAndSetCount;
     }
 
     // GET: api/Workouts/5
     [HttpGet("{workoutId}")]
-    public async Task<ActionResult<WorkoutWithExercisesAndSetsDto>> GetWorkout([FromRoute] long workoutId)
+    public async Task<ActionResult<WorkoutWithExercisesAndSetsViewModel>> GetWorkout([FromRoute] long workoutId)
     {
         var userId = User.GetClerkUserId();
 
         var workout = await _context.Workouts
             .Where(w => w.Id == workoutId && w.UserId == userId)
-            .Select(w => new WorkoutWithExercisesAndSetsDto
+            .Select(w => new WorkoutWithExercisesAndSetsViewModel
             {
                 Id = w.Id,
                 Title = w.Title,
@@ -69,23 +69,12 @@ public class WorkoutsController : ControllerBase
                 StartTime = w.StartTime,
                 EndTime = w.EndTime,
                 Comment = w.Comment,
-                Exercises = w.Exercises.Select(we => new WorkoutExerciseWithSetsDto
+                Exercises = w.Exercises.Select(we => new WorkoutExerciseWithExerciseAndSetsViewModel
                     {
                         Id = we.Id,
                         Order = we.Order,
                         Instructions = we.Instructions,
                         Comment = we.Comment,
-                        // I probably don't need this but don't feel like creating a separate dto
-                        Workout = new WorkoutDto
-                        {
-                            Id = we.WorkoutId,
-                            Title = we.Workout.Title,
-                            Description = we.Workout.Description,
-                            ProgrammedDate = we.Workout.ProgrammedDate,
-                            StartTime = we.Workout.StartTime,
-                            EndTime = we.Workout.EndTime,
-                            Comment = we.Workout.Comment
-                        },
                         Exercise = new ExerciseDto
                         {
                             Id = we.ExerciseId,
@@ -128,7 +117,12 @@ public class WorkoutsController : ControllerBase
 
         if (existingWorkout == null) return NotFound();
 
-        _mapper.Map(dto, existingWorkout);
+        existingWorkout.Title = dto.Title;
+        existingWorkout.Description = dto.Description;
+        existingWorkout.ProgrammedDate = dto.ProgrammedDate;
+        existingWorkout.StartTime = dto.StartTime;
+        existingWorkout.EndTime = dto.EndTime;
+        existingWorkout.Comment = dto.Comment;
 
         try
         {
@@ -147,18 +141,36 @@ public class WorkoutsController : ControllerBase
     // POST: api/Workouts
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPost]
-    public async Task<ActionResult<Workout>> PostWorkout(WorkoutCreateDto dto)
+    public async Task<ActionResult<WorkoutWithExercisesViewModel>> PostWorkout(WorkoutCreateDto dto)
     {
         var userId = User.GetClerkUserId();
 
-        var workout = _mapper.Map<Workout>(dto);
-        workout.UserId = userId;
+        var workout = new Workout
+        {
+            Title = dto.Title,
+            Description = dto.Description,
+            ProgrammedDate = dto.ProgrammedDate,
+            StartTime = dto.StartTime,
+            EndTime = dto.EndTime,
+            Comment = dto.Comment, UserId = userId
+        };
 
         _context.Workouts.Add(workout);
         await _context.SaveChangesAsync();
 
-        var resultDto = _mapper.Map<WorkoutDto>(workout);
-        return CreatedAtAction(nameof(GetWorkout), new { workoutId = workout.Id }, resultDto);
+        var result = new WorkoutWithExercisesViewModel
+        {
+            Id = workout.Id,
+            Title = workout.Title,
+            Description = workout.Description,
+            ProgrammedDate = workout.ProgrammedDate,
+            StartTime = workout.StartTime,
+            EndTime = workout.EndTime,
+            Comment = workout.Comment,
+            Exercises = []
+        };
+
+        return result;
     }
 
     // DELETE: api/Workouts/5
@@ -178,7 +190,7 @@ public class WorkoutsController : ControllerBase
 
     // POST: api/Workouts/5/Exercises
     [HttpPost("{workoutId}/Exercises")]
-    public async Task<IActionResult> PostWorkoutExercise(
+    public async Task<ActionResult<WorkoutExerciseWithExerciseAndSetsViewModel>> PostWorkoutExercise(
         [FromRoute] long workoutId,
         [FromBody] WorkoutExerciseCreateDto dto
     )
@@ -190,25 +202,59 @@ public class WorkoutsController : ControllerBase
         var exerciseTask = _context.Exercises
             .FirstOrDefaultAsync(e => e.Id == dto.ExerciseId && (e.UserId == userId || e.IsPublic));
 
-        await Task.WhenAll(workoutTask, exerciseTask);
+        // await Task.WhenAll(workoutTask, exerciseTask);
 
         var workout = await workoutTask;
         var exercise = await exerciseTask;
 
         if (workout == null || exercise == null) return NotFound();
 
-        var workoutExercise = _mapper.Map<WorkoutExercise>(dto);
-        workoutExercise.WorkoutId = workoutId;
-        workoutExercise.UserId = userId;
-
-        if (workoutExercise.Sets.Count > 0)
-            foreach (var set in workoutExercise.Sets)
-                set.UserId = userId;
+        // Oare sa cer si sets cand se adauga un exercitiu in workout?
+        var workoutExercise = new WorkoutExercise
+        {
+            Order = dto.Order,
+            ExerciseId = dto.ExerciseId,
+            Instructions = dto.Instructions,
+            Comment = dto.Comment,
+            UserId = userId,
+            WorkoutId = workoutId,
+            Sets = []
+        };
 
         _context.WorkoutExercises.Add(workoutExercise);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetWorkout), new { workoutId }, workoutExercise);
+        var result = new WorkoutExerciseWithExerciseAndSetsViewModel
+        {
+            Id = workoutExercise.Id,
+            Order = workoutExercise.Order,
+            Instructions = workoutExercise.Instructions,
+            Comment = workoutExercise.Comment,
+            Exercise = new ExerciseDto
+            {
+                Id = workoutExercise.ExerciseId,
+                Title = workoutExercise.Exercise.Title,
+                Instructions = workoutExercise.Exercise.Instructions,
+                Url = workoutExercise.Exercise.Url,
+                WeightUnit = workoutExercise.Exercise.WeightUnit,
+                IntensityUnit = workoutExercise.Exercise.IntensityUnit,
+                IsPublic = workoutExercise.Exercise.IsPublic
+            },
+            Sets = workoutExercise.Sets.Select(s => new
+                WorkoutExerciseSetDto
+                {
+                    Id = s.Id,
+                    Reps = s.Reps,
+                    WeightUnit = s.WeightUnit,
+                    IntensityUnit = s.IntensityUnit,
+                    Comment = s.Comment,
+                    Weight = s.Weight,
+                    Intensity = s.Intensity
+                }
+            ).ToList()
+        };
+
+        return result;
     }
 
     // PUT: api/Workouts/Exercises/5
@@ -224,7 +270,10 @@ public class WorkoutsController : ControllerBase
 
         if (existingWorkoutExercise == null) return NotFound();
 
-        _mapper.Map(dto, existingWorkoutExercise);
+        existingWorkoutExercise.Order = dto.Order;
+        existingWorkoutExercise.ExerciseId = dto.ExerciseId;
+        existingWorkoutExercise.Instructions = dto.Instructions;
+        existingWorkoutExercise.Comment = dto.Comment;
 
         try
         {
@@ -286,7 +335,8 @@ public class WorkoutsController : ControllerBase
 
     // POST: api/Workouts/FromTemplate
     [HttpPost("FromTemplate")]
-    public async Task<IActionResult> CreateWorkoutFromTemplate([FromBody] WorkoutFromTemplateCreateDto dto)
+    public async Task<ActionResult<WorkoutWithExercisesViewModel>> CreateWorkoutFromTemplate(
+        [FromBody] WorkoutFromTemplateCreateDto dto)
     {
         var userId = User.GetClerkUserId();
 
@@ -325,8 +375,25 @@ public class WorkoutsController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        var resultDto = _mapper.Map<Workout>(workout);
-        return CreatedAtAction(nameof(GetWorkout), new { workoutId = workout.Id }, resultDto);
+        var result = new WorkoutWithExercisesViewModel
+        {
+            Id = workout.Id,
+            Title = workout.Title,
+            Description = workout.Description,
+            Comment = workout.Comment,
+            ProgrammedDate = workout.ProgrammedDate,
+            StartTime = workout.StartTime,
+            EndTime = workout.EndTime,
+            Exercises = workout.Exercises.Select(e => new WorkoutExerciseWithSetCountDto
+            {
+                Id = e.Id,
+                Order = e.Order,
+                Title = e.Exercise.Title,
+                SetsCount = e.Sets.Count
+            }).ToList()
+        };
+
+        return result;
     }
 
     private bool WorkoutExists(long workoutId, string userId)

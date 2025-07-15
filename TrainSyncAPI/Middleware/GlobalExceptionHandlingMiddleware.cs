@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace TrainSyncAPI.Middleware;
 
 public class GlobalExceptionHandlingMiddleware
@@ -23,23 +25,49 @@ public class GlobalExceptionHandlingMiddleware
                 Console.WriteLine(
                     $"[Request] Authorization: {context.Request.Headers["Authorization"]}"
                 );
+
             await _next(context);
         }
         catch (UnauthorizedAccessException ex)
         {
-            Console.WriteLine(
-                $"[GlobalExceptionHandlingMiddleware] UnauthorizedAccessException: {ex}"
-            );
+            Console.WriteLine($"[GlobalExceptionHandlingMiddleware] UnauthorizedAccessException: {ex}");
             _logger.LogWarning(ex, "Unauthorized access.");
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            await context.Response.WriteAsJsonAsync(new { error = "Unauthorized" });
+            await WriteErrorResponse(context, ex.GetType().Name, "Unauthorized");
+        }
+        catch (JsonException ex)
+        {
+            Console.WriteLine($"[GlobalExceptionHandlingMiddleware] JsonException: {ex}");
+            _logger.LogWarning(ex, "Invalid JSON received from client.");
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            await WriteErrorResponse(context, ex.GetType().Name, "Invalid JSON payload");
+        }
+        catch (BadHttpRequestException ex)
+        {
+            Console.WriteLine($"[GlobalExceptionHandlingMiddleware] BadHttpRequestException: {ex}");
+            _logger.LogWarning(ex, "Bad HTTP request.");
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            await WriteErrorResponse(context, ex.GetType().Name, "Bad request");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[GlobalExceptionHandlingMiddleware] Exception: {ex}");
             _logger.LogError(ex, "Unhandled exception occurred.");
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-            await context.Response.WriteAsJsonAsync(new { error = "An unexpected error occurred" });
+            await WriteErrorResponse(context, ex.GetType().Name, "An unexpected error occurred");
         }
+    }
+
+    private static Task WriteErrorResponse(HttpContext context, string name, string message)
+    {
+        context.Response.ContentType = "application/json";
+        return context.Response.WriteAsJsonAsync(new
+        {
+            error = new
+            {
+                name,
+                message
+            }
+        });
     }
 }

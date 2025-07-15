@@ -1,6 +1,6 @@
 namespace TrainSyncAPI.Dtos;
 
-public class TemplateWithExercisesAndSetsDto
+public class TemplateWithExercisesViewModel
 {
     public long Id { get; set; }
 
@@ -10,5 +10,5 @@ public class TemplateWithExercisesAndSetsDto
 
     public bool IsPublic { get; set; } = false;
 
-    public List<TemplateExerciseWithSetsDto> Exercises { get; set; } = new();
+    public List<TemplateExerciseWithSetCountDto> Exercises { get; set; } = new();
 }

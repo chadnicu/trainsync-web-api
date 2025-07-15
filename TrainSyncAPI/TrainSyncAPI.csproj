@@ -23,4 +23,16 @@
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <_ContentIncludedByDefault Remove="TrainSyncAPI.Tests\obj\project.assets.json"/>
+        <_ContentIncludedByDefault Remove="TrainSyncAPI.Tests\obj\TrainSyncAPI.Tests.csproj.nuget.dgspec.json"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="Dtos\TemplateExerciseSet\Responses\"/>
+        <Folder Include="Dtos\WorkoutExerciseSet\Requests\"/>
+        <Folder Include="Dtos\WorkoutExerciseSet\Responses\"/>
+        <Folder Include="Dtos\WorkoutExercise\Responses\"/>
+    </ItemGroup>
+
 </Project>

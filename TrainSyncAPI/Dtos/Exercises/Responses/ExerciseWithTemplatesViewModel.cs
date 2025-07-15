@@ -2,7 +2,7 @@ using TrainSyncAPI.Enums;
 
 namespace TrainSyncAPI.Dtos;
 
-public class ExerciseWithTemplatesDto
+public class ExerciseWithTemplatesViewModel
 {
     public long Id { get; set; }
     public string Title { get; set; } = null!;

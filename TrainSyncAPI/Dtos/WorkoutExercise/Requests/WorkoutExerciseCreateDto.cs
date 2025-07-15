@@ -7,9 +7,9 @@ public class WorkoutExerciseCreateDto
     [Range(0, double.MaxValue, ErrorMessage = "Order must be 0 or greater.")]
     public double Order { get; set; }
 
-    [Required(ErrorMessage = "WorkoutId is required.")]
-    [Range(1, long.MaxValue, ErrorMessage = "WorkoutId must be a positive number.")]
-    public long WorkoutId { get; set; }
+    // [Required(ErrorMessage = "WorkoutId is required.")]
+    // [Range(1, long.MaxValue, ErrorMessage = "WorkoutId must be a positive number.")]
+    // public long WorkoutId { get; set; }
 
     [Required(ErrorMessage = "ExerciseId is required.")]
     [Range(1, long.MaxValue, ErrorMessage = "ExerciseId must be a positive number.")]

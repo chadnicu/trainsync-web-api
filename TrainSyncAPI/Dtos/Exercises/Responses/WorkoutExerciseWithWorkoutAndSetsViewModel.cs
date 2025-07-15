@@ -1,6 +1,6 @@
 namespace TrainSyncAPI.Dtos;
 
-public class WorkoutExerciseWithWorkoutDto
+public class WorkoutExerciseWithWorkoutAndSetsViewModel
 {
     public long Id { get; set; }
     public double Order { get; set; }
@@ -8,4 +8,6 @@ public class WorkoutExerciseWithWorkoutDto
     public string? Comment { get; set; }
 
     public WorkoutDto? Workout { get; set; }
+
+    public List<WorkoutExerciseSetDto> Sets { get; set; } = new();
 }

@@ -2,7 +2,7 @@ using TrainSyncAPI.Enums;
 
 namespace TrainSyncAPI.Dtos;
 
-public class ExerciseWithWorkoutSetsDto
+public class ExerciseWithWorkoutSetsViewModel
 {
     public long Id { get; set; }
     public string Title { get; set; } = null!;
@@ -12,5 +12,5 @@ public class ExerciseWithWorkoutSetsDto
     public IntensityUnit IntensityUnit { get; set; }
     public bool IsPublic { get; set; }
 
-    public List<WorkoutExerciseWithSetsDto> Sets { get; set; } = [];
+    public List<WorkoutExerciseWithWorkoutAndSetsViewModel> Sets { get; set; } = [];
 }

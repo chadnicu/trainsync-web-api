@@ -1,6 +1,6 @@
 namespace TrainSyncAPI.Dtos;
 
-public class TemplateExerciseWithSetsDto
+public class TemplateExerciseWithSetsViewModel
 {
     public long Id { get; set; }
 

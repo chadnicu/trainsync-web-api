@@ -1,4 +1,3 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,23 +14,21 @@ namespace TrainSyncAPI.Controllers;
 public class TemplatesController : ControllerBase
 {
     private readonly TrainSyncContext _context;
-    private readonly IMapper _mapper;
 
-    public TemplatesController(TrainSyncContext context, IMapper mapper)
+    public TemplatesController(TrainSyncContext context)
     {
         _context = context;
-        _mapper = mapper;
     }
 
     // GET: api/Templates
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<TemplateWithExercisesDto>>> GetTemplates()
+    public async Task<ActionResult<IEnumerable<TemplateWithExercisesViewModel>>> GetTemplates()
     {
         var userId = User.GetClerkUserId();
 
-        return await _context.Templates
+        var templatesWithExerciseListAndSetCount = await _context.Templates
             .Where(t => t.UserId == userId)
-            .Select(t => new TemplateWithExercisesDto
+            .Select(t => new TemplateWithExercisesViewModel
             {
                 Id = t.Id,
                 Title = t.Title,
@@ -47,23 +44,25 @@ public class TemplatesController : ControllerBase
                     }).ToList()
             })
             .ToListAsync();
+
+        return templatesWithExerciseListAndSetCount;
     }
 
     // GET: api/Templates/5
     [HttpGet("{templateId}")]
-    public async Task<ActionResult<TemplateWithExercisesAndSetsDto>> GetTemplate([FromRoute] long templateId)
+    public async Task<ActionResult<TemplateWithExercisesAndSetsViewModel>> GetTemplate([FromRoute] long templateId)
     {
         var userId = User.GetClerkUserId();
 
         var template = await _context.Templates
             .Where(t => t.Id == templateId && (t.UserId == userId || t.IsPublic))
-            .Select(t => new TemplateWithExercisesAndSetsDto
+            .Select(t => new TemplateWithExercisesAndSetsViewModel
             {
                 Id = t.Id,
                 Title = t.Title,
                 Description = t.Description,
                 IsPublic = t.IsPublic,
-                Exercises = t.Exercises.Select(te => new TemplateExerciseWithSetsDto
+                Exercises = t.Exercises.Select(te => new TemplateExerciseWithSetsViewModel
                     {
                         Id = te.Id,
                         Order = te.Order,
@@ -110,7 +109,8 @@ public class TemplatesController : ControllerBase
 
         if (existingTemplate == null) return NotFound();
 
-        _mapper.Map(dto, existingTemplate);
+        existingTemplate.Title = dto.Title;
+        existingTemplate.Description = dto.Description;
 
         try
         {
@@ -129,18 +129,31 @@ public class TemplatesController : ControllerBase
     // POST: api/Templates
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPost]
-    public async Task<ActionResult<Template>> PostTemplate(TemplateCreateDto dto)
+    public async Task<ActionResult<TemplateWithExercisesViewModel>> PostTemplate(TemplateCreateDto dto)
     {
         var userId = User.GetClerkUserId();
 
-        var template = _mapper.Map<Template>(dto);
-        template.UserId = userId;
+        var template = new Template
+        {
+            Title = dto.Title,
+            Description = dto.Description,
+            IsPublic = false,
+            UserId = userId
+        };
 
         _context.Templates.Add(template);
         await _context.SaveChangesAsync();
 
-        var resultDto = _mapper.Map<TemplateDto>(template);
-        return CreatedAtAction(nameof(GetTemplate), new { templateId = template.Id }, resultDto);
+        var result = new TemplateWithExercisesViewModel
+        {
+            Id = template.Id,
+            Title = template.Title,
+            Description = template.Description,
+            IsPublic = template.IsPublic,
+            Exercises = []
+        };
+
+        return result;
     }
 
     // DELETE: api/Templates/5
@@ -161,7 +174,7 @@ public class TemplatesController : ControllerBase
 
     // POST: api/Templates/5/Exercises
     [HttpPost("{templateId}/Exercises")]
-    public async Task<IActionResult> PostTemplateExercise([FromRoute] long templateId,
+    public async Task<ActionResult<TemplateExerciseWithSetsViewModel>> PostTemplateExercise([FromRoute] long templateId,
         [FromBody] TemplateExerciseCreateDto dto)
     {
         var userId = User.GetClerkUserId();
@@ -171,25 +184,60 @@ public class TemplatesController : ControllerBase
         var exerciseTask = _context.Exercises
             .FirstOrDefaultAsync(e => e.Id == dto.ExerciseId && (e.UserId == userId || e.IsPublic));
 
-        await Task.WhenAll(templateTask, exerciseTask);
+        // await Task.WhenAll(templateTask, exerciseTask);
 
         var template = await templateTask;
         var exercise = await exerciseTask;
 
         if (template == null || exercise == null) return NotFound();
 
-        var templateExercise = _mapper.Map<TemplateExercise>(dto);
-        templateExercise.TemplateId = templateId;
-        templateExercise.UserId = userId;
-
-        if (templateExercise.Sets.Count > 0)
-            foreach (var set in templateExercise.Sets)
-                set.UserId = userId;
+        var templateExercise = new TemplateExercise
+        {
+            Order = dto.Order,
+            ExerciseId = dto.ExerciseId,
+            Instructions = dto.Instructions,
+            TemplateId = templateId,
+            Sets = dto.Sets.Select(s => new TemplateExerciseSet
+            {
+                UserId = userId,
+                IntensityUnit = s.IntensityUnit,
+                WeightUnit = s.WeightUnit,
+                Intensity = s.Intensity,
+                Reps = s.Reps,
+                Weight = s.Weight
+            }).ToList(),
+            UserId = userId
+        };
 
         _context.TemplateExercises.Add(templateExercise);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetTemplate), new { templateId }, templateExercise);
+        var result = new TemplateExerciseWithSetsViewModel
+        {
+            Id = templateExercise.Id,
+            Order = templateExercise.Order,
+            Instructions = templateExercise.Instructions,
+            Exercise = new ExerciseDto
+            {
+                Id = templateExercise.ExerciseId,
+                IsPublic = templateExercise.Exercise.IsPublic,
+                Instructions = templateExercise.Exercise.Instructions,
+                IntensityUnit = templateExercise.Exercise.IntensityUnit,
+                WeightUnit = templateExercise.Exercise.WeightUnit,
+                Title = templateExercise.Exercise.Title,
+                Url = templateExercise.Exercise.Url
+            },
+            Sets = templateExercise.Sets.Select(s =>
+                new TemplateExerciseSetDto
+                {
+                    Id = s.Id,
+                    IntensityUnit = s.IntensityUnit, WeightUnit = s.WeightUnit, Intensity = s.Intensity, Reps = s.Reps,
+                    Weight = s.Weight
+                }
+            ).ToList()
+        };
+
+        return result;
     }
 
     // PUT: api/Templates/Exercises/5
@@ -204,7 +252,18 @@ public class TemplatesController : ControllerBase
 
         if (existingTemplateExercise == null) return NotFound();
 
-        _mapper.Map(dto, existingTemplateExercise);
+        existingTemplateExercise.Instructions = dto.Instructions;
+        existingTemplateExercise.Order = dto.Order;
+        existingTemplateExercise.ExerciseId = dto.ExerciseId;
+        existingTemplateExercise.Sets = dto.Sets.Select(s => new TemplateExerciseSet
+        {
+            UserId = userId,
+            IntensityUnit = s.IntensityUnit,
+            WeightUnit = s.WeightUnit,
+            Intensity = s.Intensity,
+            Reps = s.Reps,
+            Weight = s.Weight
+        }).ToList();
 
         try
         {
