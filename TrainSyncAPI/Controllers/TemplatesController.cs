@@ -43,6 +43,7 @@ public class TemplatesController : ControllerBase
                         SetsCount = te.Sets.Count
                     }).ToList()
             })
+            .OrderByDescending(t => t.Id)
             .ToListAsync();
 
         return templatesWithExerciseListAndSetCount;

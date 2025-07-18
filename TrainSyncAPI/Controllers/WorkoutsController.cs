@@ -47,6 +47,7 @@ public class WorkoutsController : ControllerBase
                         }
                     ).ToList()
                 })
+                .OrderByDescending(w => w.Id)
                 .ToListAsync();
 
         return workoutWithExerciseListAndSetCount;

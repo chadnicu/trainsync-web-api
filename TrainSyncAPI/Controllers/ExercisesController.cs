@@ -48,6 +48,7 @@ public class ExercisesController : ControllerBase
                     )
                     .ToList()
             })
+            .OrderByDescending(e => e.Id)
             .ToListAsync();
 
         return exercisesWithTemplateList;
